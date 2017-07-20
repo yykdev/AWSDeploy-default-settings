@@ -1,0 +1,42 @@
+# docker build -t <사용할 이미지 이름> <프로젝트 경로> -f <Dockerfile이 존재하는 경로>
+# 샘플 : docker build -t <eb_ubuntu> <.> -f <.dockerfiles/Dockerfile.ubuntu>
+# 실제 사용 예 : docker build -t eb_ubuntu . -f .dockerfiles/Dockerfile.ubuntu
+
+FROM        ubuntu:16.04
+MAINTAINER  assavictory@gmail.com
+
+## -y : 설치 중 용량 관련 yes/no 질의에서 자동으로 yes 선택
+# apt-get pachage
+RUN         apt-get -y update
+RUN         apt-get install -y python-pip
+RUN         apt-get install -y git vim
+
+# pyenv
+RUN         apt-get install -y make build-essential libssl-dev zlib1g-dev libbz2-dev \
+libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils
+RUN         curl -L https://raw.githubusercontent.com/yyuu/pyenv-installer/master/bin/pyenv-installer | bash
+ENV         PATH /root/.pyenv/bin:$PATH
+RUN         pyenv install 3.6.1
+
+# zsh
+RUN         apt-get -y install zsh
+RUN         wget https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh || true
+RUN         chsh -s /usr/bin/zsh
+
+# pyenv settings
+RUN         echo 'export PATH="/root/.pyenv/bin:$PATH"' >> ~/.zshrc
+RUN         echo 'eval "$(pyenv init -)"' >> ~/.zshrc
+RUN         echo 'eval "$(pyenv virtualenv-init -)"' >> ~/.zshrc
+
+# pyenv virtualenv
+RUN         pyenv virtualenv 3.6.1 deploy_eb_docker
+
+# uwsgi install
+## 콘솔 쉘이 아닌 Docker 등과 같은 외부 프로그램 명령을 통해 pip를 실행 할 때는 실제 가상환경이 설치 된 디렉토리에서 pip 명령을 실행 해야 한다.
+RUN         /root/.pyenv/versions/deploy_eb_docker/bin/pip install uwsgi
+
+# nginx install
+RUN         apt-get -y install nginx
+
+# supervsor install
+RUN         apt-get -y install supervisor
